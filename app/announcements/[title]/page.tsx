@@ -1,5 +1,6 @@
 'use client';
 import { DiscussionEmbed } from "disqus-react";
+import React from 'react';
 
 type Video = {
   title: string;
@@ -14,10 +15,29 @@ async function fetchVideos(): Promise<Video[]> {
   return res.json();
 }
 
-async function VideoPage({ params }: { params: { title: string } }) {
-  // params を非同期で処理する
-  const videoTitle = decodeURIComponent(params.title);
-  const videos = await fetchVideos();
+function VideoPage({ params }: { params: { title: string } }) {
+  const [videoTitle, setVideoTitle] = React.useState<string>('');
+  const [videos, setVideos] = React.useState<Video[]>([]);
+  const [loading, setLoading] = React.useState(true);  // ローディング状態を追加
+
+  React.useEffect(() => {
+    async function fetchData() {
+      // `params`がPromiseであることに対応
+      const title = await params.title;  // params.titleを非同期で解決
+      setVideoTitle(decodeURIComponent(title));
+
+      const fetchedVideos = await fetchVideos();
+      setVideos(fetchedVideos);
+      setLoading(false);  // データ取得後にローディングを終了
+    }
+
+    fetchData();
+  }, [params]);  // paramsが変更されたら再実行
+
+  if (loading) {
+    return <div>ローディング中...</div>;
+  }
+
   const video = videos.find((v) => v.title === videoTitle);
 
   if (!video) {
@@ -36,7 +56,7 @@ async function VideoPage({ params }: { params: { title: string } }) {
     <div className="flex flex-col lg:flex-row max-w-7xl mx-auto p-4 gap-6">
       {/* 左側: 動画と詳細 */}
       <div className="flex-1">
-          <iframe width="560" height="315" src={`https://www.youtube.com/embed/${url.split("v=")[1]?.split("&")[0]}`} title={title} frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerPolicy="strict-origin-when-cross-origin" allowFullScreen></iframe>
+        <iframe width="560" height="315" src={`https://www.youtube.com/embed/${url.split("v=")[1]?.split("&")[0]}`} title={title} frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerPolicy="strict-origin-when-cross-origin" allowFullScreen></iframe>
         <h1 className="text-2xl font-bold mt-4">{title}</h1>
         <p className="text-sm text-gray-600 mt-2">スピーカー: {speaker}</p>
         <p className="text-sm text-gray-600">日付: {date}</p>
